@@ -14,6 +14,8 @@ import com.kata.bookstore.service.CartService;
 
 import jakarta.transaction.Transactional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,8 @@ import java.util.List;
 @Service
 @Transactional
 public class CartServiceImpl implements CartService {
+
+    private static final Logger log = LoggerFactory.getLogger(CartServiceImpl.class);
 
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
@@ -62,6 +66,7 @@ public class CartServiceImpl implements CartService {
         User user = getLoggedInUser();
         Cart cart = getOrCreateCart(user);
 
+        log.debug("Retrieved cart with {} items", cart.getItems().size());
         return mapToCartResponse(cart);
     }
 
@@ -69,6 +74,7 @@ public class CartServiceImpl implements CartService {
     public CartResponse addToCart(Long bookId, Integer quantity) {
 
         if (quantity == null || quantity <= 0) {
+            log.warn("Rejected cart addition because quantity must be greater than zero");
             throw new IllegalArgumentException("Quantity must be greater than zero");
         }
 
@@ -90,6 +96,7 @@ public class CartServiceImpl implements CartService {
         }
 
         if (newQuantity > book.getStock()) {
+            log.warn("Rejected cart addition because requested quantity exceeds stock for book {}", bookId);
             throw new IllegalArgumentException("Insufficient stock available");
         }
 
@@ -106,6 +113,7 @@ public class CartServiceImpl implements CartService {
 
         cartRepository.save(cart);
 
+        log.info("Added book {} to cart; resulting quantity is {}", bookId, newQuantity);
         return mapToCartResponse(cart);
     }
 
@@ -113,6 +121,7 @@ public class CartServiceImpl implements CartService {
     public CartResponse updateQuantity(Long bookId, Integer quantity) {
 
         if (quantity == null || quantity <= 0) {
+            log.warn("Rejected cart quantity update because quantity must be greater than zero");
             throw new IllegalArgumentException("Quantity must be greater than zero");
         }
 
@@ -125,11 +134,13 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new RuntimeException("Book not found in cart"));
 
         if (quantity > item.getBook().getStock()) {
+            log.warn("Rejected cart quantity update because requested quantity exceeds stock for book {}", bookId);
             throw new IllegalArgumentException("Insufficient stock available");
         }
 
         item.setQuantity(quantity);
 
+        log.info("Updated cart quantity for book {} to {}", bookId, quantity);
         return mapToCartResponse(cart);
     }
 
@@ -145,6 +156,7 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new RuntimeException("Book not found in cart"));
 
         cart.getItems().remove(item);
+        log.info("Removed book {} from cart", bookId);
     }
 
     private CartResponse mapToCartResponse(Cart cart) {

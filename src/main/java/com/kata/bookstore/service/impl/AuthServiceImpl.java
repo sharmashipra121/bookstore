@@ -6,6 +6,8 @@ import com.kata.bookstore.dto.RegisterRequest;
 import com.kata.bookstore.entity.User;
 import com.kata.bookstore.repository.UserRepository;
 import com.kata.bookstore.service.AuthService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,6 +17,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -31,6 +35,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse register(RegisterRequest request){
         if(userRepository.existsByEmail(request.getEmail())){
+            log.warn("Registration rejected because the email is already in use");
             throw new ResponseStatusException(HttpStatus.CONFLICT,"Email is already in use");
         }
 
@@ -42,6 +47,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(encodedPassword);
         userRepository.save(user);
 
+        log.info("User registration completed");
         return new AuthResponse("Registration Successful", user.getEmail());
     }
 
@@ -51,6 +57,7 @@ public class AuthServiceImpl implements AuthService {
                 new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword())
         );
 
+        log.info("User login completed");
         return new AuthResponse("Login Successful",request.getEmail());
     }
 }

@@ -5,6 +5,8 @@ import com.kata.bookstore.dto.LoginRequest;
 import com.kata.bookstore.dto.RegisterRequest;
 import com.kata.bookstore.service.impl.AuthServiceImpl;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+
     private final AuthServiceImpl authServiceImpl;
 
     public AuthController(AuthServiceImpl authServiceImpl) {
@@ -24,6 +28,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request){
+            log.debug("Received registration request");
             AuthResponse response = authServiceImpl.register(request);
 
             return ResponseEntity
@@ -34,6 +39,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request) {
+        log.debug("Received login request");
 
         return ResponseEntity.ok(authServiceImpl.login(request));
     }
