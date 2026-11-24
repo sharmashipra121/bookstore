@@ -7,17 +7,15 @@ import com.kata.bookstore.entity.Cart;
 import com.kata.bookstore.entity.CartItem;
 import com.kata.bookstore.entity.User;
 import com.kata.bookstore.repository.BookRepository;
-import com.kata.bookstore.repository.CartItemRepository;
 import com.kata.bookstore.repository.CartRepository;
 import com.kata.bookstore.repository.UserRepository;
 import com.kata.bookstore.service.CartService;
-
-import jakarta.transaction.Transactional;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -30,16 +28,14 @@ public class CartServiceImpl implements CartService {
     private static final Logger log = LoggerFactory.getLogger(CartServiceImpl.class);
 
     private final CartRepository cartRepository;
-    private final CartItemRepository cartItemRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
 
-    public CartServiceImpl(CartRepository cartRepository,
-                           CartItemRepository cartItemRepository,
-                           BookRepository bookRepository,
-                           UserRepository userRepository) {
+    public CartServiceImpl(
+            CartRepository cartRepository,
+            BookRepository bookRepository,
+            UserRepository userRepository) {
         this.cartRepository = cartRepository;
-        this.cartItemRepository = cartItemRepository;
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
     }
@@ -72,11 +68,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartResponse addToCart(Long bookId, Integer quantity) {
-
-        if (quantity == null || quantity <= 0) {
-            log.warn("Rejected cart addition because quantity must be greater than zero");
-            throw new IllegalArgumentException("Quantity must be greater than zero");
-        }
+        validateQuantity(quantity);
 
         User user = getLoggedInUser();
         Cart cart = getOrCreateCart(user);
@@ -89,11 +81,7 @@ public class CartServiceImpl implements CartService {
                 .findFirst()
                 .orElse(null);
 
-        int newQuantity = quantity;
-
-        if (existingItem != null) {
-            newQuantity += existingItem.getQuantity();
-        }
+        int newQuantity = quantity + (existingItem == null ? 0 : existingItem.getQuantity());
 
         if (newQuantity > book.getStock()) {
             log.warn("Rejected cart addition because requested quantity exceeds stock for book {}", bookId);
@@ -103,12 +91,7 @@ public class CartServiceImpl implements CartService {
         if (existingItem != null) {
             existingItem.setQuantity(newQuantity);
         } else {
-            CartItem cartItem = new CartItem();
-            cartItem.setCart(cart);
-            cartItem.setBook(book);
-            cartItem.setQuantity(quantity);
-
-            cart.getItems().add(cartItem);
+            cart.getItems().add(createCartItem(cart, book, quantity));
         }
 
         cartRepository.save(cart);
@@ -119,19 +102,12 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartResponse updateQuantity(Long bookId, Integer quantity) {
-
-        if (quantity == null || quantity <= 0) {
-            log.warn("Rejected cart quantity update because quantity must be greater than zero");
-            throw new IllegalArgumentException("Quantity must be greater than zero");
-        }
+        validateQuantity(quantity);
 
         User user = getLoggedInUser();
         Cart cart = getOrCreateCart(user);
 
-        CartItem item = cart.getItems().stream()
-                .filter(cartItem -> cartItem.getBook().getId().equals(bookId))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Book not found in cart"));
+        CartItem item = findCartItem(cart, bookId);
 
         if (quantity > item.getBook().getStock()) {
             log.warn("Rejected cart quantity update because requested quantity exceeds stock for book {}", bookId);
@@ -146,30 +122,41 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public void removeFromCart(Long bookId) {
-
         User user = getLoggedInUser();
         Cart cart = getOrCreateCart(user);
-
-        CartItem item = cart.getItems().stream()
-                .filter(cartItem -> cartItem.getBook().getId().equals(bookId))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Book not found in cart"));
-
-        cart.getItems().remove(item);
+        cart.getItems().remove(findCartItem(cart, bookId));
         log.info("Removed book {} from cart", bookId);
     }
 
+    private void validateQuantity(Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            log.warn("Rejected cart operation because quantity must be greater than zero");
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+    }
+
+    private CartItem findCartItem(Cart cart, Long bookId) {
+        return cart.getItems().stream()
+                .filter(item -> item.getBook().getId().equals(bookId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Book not found in cart"));
+    }
+
+    private CartItem createCartItem(Cart cart, Book book, Integer quantity) {
+        CartItem item = new CartItem();
+        item.setCart(cart);
+        item.setBook(book);
+        item.setQuantity(quantity);
+        return item;
+    }
+
     private CartResponse mapToCartResponse(Cart cart) {
-
         List<CartItemResponse> items = new ArrayList<>();
-
         BigDecimal totalPrice = BigDecimal.ZERO;
         int totalItems = 0;
 
         for (CartItem item : cart.getItems()) {
-
             Book book = item.getBook();
-
             BigDecimal subtotal = book.getPrice()
                     .multiply(BigDecimal.valueOf(item.getQuantity()));
 

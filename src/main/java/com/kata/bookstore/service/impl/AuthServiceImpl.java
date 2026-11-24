@@ -33,10 +33,10 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public AuthResponse register(RegisterRequest request){
-        if(userRepository.existsByEmail(request.getEmail())){
+    public AuthResponse register(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
             log.warn("Registration rejected because the email is already in use");
-            throw new ResponseStatusException(HttpStatus.CONFLICT,"Email is already in use");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already in use");
         }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
@@ -54,7 +54,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword())
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
         log.info("User login completed");

@@ -2,12 +2,10 @@ package com.kata.bookstore.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 
 @Data
-@RequiredArgsConstructor
 @AllArgsConstructor
 public class CartItemResponse {
 
