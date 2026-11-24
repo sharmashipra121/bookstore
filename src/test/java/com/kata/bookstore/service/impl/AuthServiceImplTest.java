@@ -3,6 +3,8 @@ package com.kata.bookstore.service.impl;
 import com.kata.bookstore.dto.AuthResponse;
 import com.kata.bookstore.dto.RegisterRequest;
 import com.kata.bookstore.entity.User;
+import com.kata.bookstore.entity.UserRole;
+import com.kata.bookstore.entity.UserStatus;
 import com.kata.bookstore.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +13,7 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -55,13 +58,15 @@ class AuthServiceImplTest {
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
 
-        verify(userRepository).save(captor.capture());
+        verify(userRepository).saveAndFlush(captor.capture());
 
         User savedUser = captor.getValue();
 
         assertEquals("Shipra", savedUser.getName());
         assertEquals("shipra@gmail.com", savedUser.getEmail());
         assertEquals("encodedPassword", savedUser.getPassword());
+        assertEquals(UserRole.USER, savedUser.getRole());
+        assertEquals(UserStatus.ACTIVE, savedUser.getStatus());
     }
 
     @Test
@@ -96,7 +101,7 @@ class AuthServiceImplTest {
 
         InOrder inOrder = inOrder(passwordEncoder, userRepository);
         inOrder.verify(passwordEncoder).encode("password123");
-        inOrder.verify(userRepository).save(any(User.class));
+        inOrder.verify(userRepository).saveAndFlush(any(User.class));
     }
 
     @Test
@@ -113,16 +118,34 @@ class AuthServiceImplTest {
                 () -> authService.register(request)
         );
 
-        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
         verify(passwordEncoder, never()).encode(anyString());
     }
 
     @Test
+    void shouldThrowConflictWhenDuplicateEmailWinsTheRegistrationRace() {
+        RegisterRequest request = new RegisterRequest();
+        request.setName("Shipra");
+        request.setEmail("shipra@gmail.com");
+        request.setPassword("password123");
+
+        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate email"));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> authService.register(request)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+        assertEquals("Email is already in use", exception.getReason());
+    }
+
+    @Test
     void shouldLoadUserSuccessfullyByEmail() {
-        User user = new User();
-        user.setName("Shipra");
-        user.setEmail("shipra@gmail.com");
-        user.setPassword("$2a$10$encodedPassword");
+        User user = User.createRegistered("Shipra", "shipra@gmail.com", "$2a$10$encodedPassword");
 
         when(userRepository.findByEmail("shipra@gmail.com")).thenReturn(Optional.of(user));
 
@@ -131,9 +154,30 @@ class AuthServiceImplTest {
         assertNotNull(userDetails);
         assertEquals("shipra@gmail.com", userDetails.getUsername());
         assertEquals("$2a$10$encodedPassword", userDetails.getPassword());
+        assertTrue(userDetails.isEnabled());
+        assertTrue(userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_USER")));
 
         verify(userRepository, times(1))
                 .findByEmail("shipra@gmail.com");
+    }
+
+    @Test
+    void shouldLoadRoleAndDisabledStatusFromUser() {
+        User user = User.builder()
+                .name("Admin")
+                .email("admin@example.com")
+                .password("encodedPassword")
+                .role(UserRole.ADMIN)
+                .status(UserStatus.DISABLED)
+                .build();
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+
+        assertFalse(userDetails.isEnabled());
+        assertTrue(userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN")));
     }
 
     @Test

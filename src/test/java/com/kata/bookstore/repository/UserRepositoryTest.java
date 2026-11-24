@@ -1,6 +1,8 @@
 package com.kata.bookstore.repository;
 
 import com.kata.bookstore.entity.User;
+import com.kata.bookstore.entity.UserRole;
+import com.kata.bookstore.entity.UserStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -15,25 +17,19 @@ class UserRepositoryTest {
 
     @Test
     void shouldSaveUserSuccessfully() {
-        User user = new User();
-        user.setName("Shipra");
-        user.setEmail("shipra@gmail.com");
-        user.setPassword("encodedPassword");
+        User user = User.createRegistered("Shipra", "shipra@gmail.com", "encodedPassword");
         User savedUser = userRepository.save(user);
 
         assertNotNull(savedUser.getId());
         assertEquals("Shipra", savedUser.getName());
         assertEquals("shipra@gmail.com", savedUser.getEmail());
+        assertEquals(UserRole.USER, savedUser.getRole());
+        assertEquals(UserStatus.ACTIVE, savedUser.getStatus());
     }
 
     @Test
     void shouldFindUserByEmail() {
-        User user = new User();
-        user.setName("Shipra");
-        user.setEmail("shipra@gmail.com");
-        user.setPassword("encodedPassword");
-
-        userRepository.save(user);
+        userRepository.save(User.createRegistered("Shipra", "shipra@gmail.com", "encodedPassword"));
         Optional<User> result = userRepository.findByEmail("shipra@gmail.com");
 
         assertTrue(result.isPresent());
@@ -42,12 +38,7 @@ class UserRepositoryTest {
 
     @Test
     void shouldReturnTrueWhenEmailExists() {
-        User user = new User();
-        user.setName("Shipra");
-        user.setEmail("shipra@gmail.com");
-        user.setPassword("encodedPassword");
-
-        userRepository.save(user);
+        userRepository.save(User.createRegistered("Shipra", "shipra@gmail.com", "encodedPassword"));
         boolean exists = userRepository.existsByEmail("shipra@gmail.com");
 
         assertTrue(exists);

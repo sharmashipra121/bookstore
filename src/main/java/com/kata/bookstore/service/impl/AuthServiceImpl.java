@@ -6,6 +6,7 @@ import com.kata.bookstore.dto.RegisterRequest;
 import com.kata.bookstore.entity.User;
 import com.kata.bookstore.repository.UserRepository;
 import com.kata.bookstore.service.AuthService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -41,14 +42,19 @@ public class AuthServiceImpl implements AuthService {
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
-        User user = new User();
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
-        user.setPassword(encodedPassword);
-        userRepository.save(user);
+        User user = User.createRegistered(request.getName(), request.getEmail(), encodedPassword);
+        try {
+            userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException exception) {
+            log.warn("Registration rejected because the email is already in use");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already in use", exception);
+        }
 
         log.info("User registration completed");
-        return new AuthResponse("Registration Successful", user.getEmail());
+        return AuthResponse.builder()
+                .message("Registration Successful")
+                .email(user.getEmail())
+                .build();
     }
 
     @Override
@@ -58,6 +64,9 @@ public class AuthServiceImpl implements AuthService {
         );
 
         log.info("User login completed");
-        return new AuthResponse("Login Successful",request.getEmail());
+        return AuthResponse.builder()
+                .message("Login Successful")
+                .email(request.getEmail())
+                .build();
     }
 }

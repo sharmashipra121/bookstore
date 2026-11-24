@@ -125,7 +125,7 @@ The `/auth/**`, `/h2-console/**`, `/error`, and `/` endpoints are publicly acces
 
 ## H2 Database
 
-The application uses an in-memory H2 database named `bookstoredb`. Data is reset whenever the application restarts.
+The application uses a file-based H2 database at `./data/bookstoredb`, relative to the application working directory.
 
 Open the H2 console at:
 
@@ -137,8 +137,8 @@ Use these connection settings:
 
 | Setting | Value |
 |---|---|
-| JDBC URL | `jdbc:h2:mem:bookstoredb` |
-| Username | `sa` |
+| JDBC URL | `jdbc:h2:file:./data/bookstoredb` |
+| Username | _empty_ |
 | Password | _empty_ |
 
 Initial sample books are loaded from `src/main/resources/data.sql`.

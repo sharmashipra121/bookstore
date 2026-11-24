@@ -163,22 +163,22 @@ public class CartServiceImpl implements CartService {
             totalPrice = totalPrice.add(subtotal);
             totalItems += item.getQuantity();
 
-            items.add(new CartItemResponse(
-                    item.getId(),
-                    book.getId(),
-                    book.getTitle(),
-                    book.getAuthor(),
-                    book.getPrice(),
-                    item.getQuantity(),
-                    subtotal
-            ));
+            items.add(CartItemResponse.builder()
+                    .id(item.getId())
+                    .bookId(book.getId())
+                    .title(book.getTitle())
+                    .author(book.getAuthor())
+                    .price(book.getPrice())
+                    .quantity(item.getQuantity())
+                    .subtotal(subtotal)
+                    .build());
         }
 
-        return new CartResponse(
-                cart.getId(),
-                items,
-                totalPrice,
-                totalItems
-        );
+        return CartResponse.builder()
+                .cartId(cart.getId())
+                .items(items)
+                .totalPrice(totalPrice)
+                .totalItems(totalItems)
+                .build();
     }
 }

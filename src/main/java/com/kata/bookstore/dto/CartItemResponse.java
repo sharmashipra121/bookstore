@@ -1,12 +1,14 @@
 package com.kata.bookstore.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Builder;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 
-@Data
+@Getter
 @AllArgsConstructor
+@Builder
 public class CartItemResponse {
 
     private Long id;

@@ -1,6 +1,7 @@
 package com.kata.bookstore.service.impl;
 
 import com.kata.bookstore.entity.User;
+import com.kata.bookstore.entity.UserStatus;
 import com.kata.bookstore.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,8 @@ public class DatabaseUserDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
                 .password(user.getPassword())
-                .roles("USER")
+                .roles(user.getRole().name())
+                .disabled(user.getStatus() != UserStatus.ACTIVE)
                 .build();
     }
 }
