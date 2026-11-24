@@ -1,5 +1,6 @@
 package com.kata.bookstore.service.impl;
 
+import com.kata.bookstore.dto.BookResponse;
 import com.kata.bookstore.entity.Book;
 import com.kata.bookstore.repository.BookRepository;
 import com.kata.bookstore.service.BookService;
@@ -17,7 +18,19 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public List<Book> getAllBooks() {
-        return bookRepository.findAll();
+    public List<BookResponse> getAllBooks() {
+        return bookRepository.findAll().stream()
+                .map(this::toBookResponse)
+                .toList();
+    }
+
+    private BookResponse toBookResponse(Book book) {
+        return new BookResponse(
+                book.getId(),
+                book.getTitle(),
+                book.getAuthor(),
+                book.getPrice(),
+                book.getStock()
+        );
     }
 }

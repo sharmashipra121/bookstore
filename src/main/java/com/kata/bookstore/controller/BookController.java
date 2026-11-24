@@ -1,6 +1,6 @@
 package com.kata.bookstore.controller;
 
-import com.kata.bookstore.entity.Book;
+import com.kata.bookstore.dto.BookResponse;
 import com.kata.bookstore.service.BookService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,7 @@ public class BookController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Book>> getAllBooks() {
+    public ResponseEntity<List<BookResponse>> getAllBooks() {
         log.debug("Received request to list books");
 
         return ResponseEntity.ok(

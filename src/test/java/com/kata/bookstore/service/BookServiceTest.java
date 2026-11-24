@@ -1,5 +1,6 @@
 package com.kata.bookstore.service;
 
+import com.kata.bookstore.dto.BookResponse;
 import com.kata.bookstore.entity.Book;
 import com.kata.bookstore.repository.BookRepository;
 import com.kata.bookstore.service.impl.BookServiceImpl;
@@ -28,21 +29,32 @@ class BookServiceTest {
     @Test
     void shouldReturnAllBooks() {
 
-        List<Book> books = Arrays.asList(
-                new Book(1L, "Effective Java",
-                        "Joshua Bloch", BigDecimal.valueOf(650), 10),
+        Book firstBook = new Book();
+        firstBook.setId(1L);
+        firstBook.setTitle("Effective Java");
+        firstBook.setAuthor("Joshua Bloch");
+        firstBook.setPrice(BigDecimal.valueOf(650));
+        firstBook.setStock(10);
 
-                new Book(2L, "Clean Code",
-                        "Robert Martin", BigDecimal.valueOf(700), 5)
-        );
+        Book secondBook = new Book();
+        secondBook.setId(2L);
+        secondBook.setTitle("Clean Code");
+        secondBook.setAuthor("Robert Martin");
+        secondBook.setPrice(BigDecimal.valueOf(700));
+        secondBook.setStock(5);
+
+        List<Book> books = Arrays.asList(firstBook, secondBook);
 
         when(bookRepository.findAll())
                 .thenReturn(books);
 
-        List<Book> result = bookService.getAllBooks();
+        List<BookResponse> result = bookService.getAllBooks();
 
         assertEquals(2, result.size());
         assertEquals("Effective Java", result.get(0).getTitle());
+        assertEquals(1L, result.get(0).getId());
+        assertEquals(BigDecimal.valueOf(650), result.get(0).getPrice());
+        assertEquals(10, result.get(0).getStock());
 
         verify(bookRepository, times(1)).findAll();
     }
