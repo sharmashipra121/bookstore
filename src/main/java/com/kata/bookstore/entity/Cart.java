@@ -45,6 +45,19 @@ public class Cart {
     )
     private List<CartItem> items = new ArrayList<>();
 
+    public CartItem addItem(Book book, int quantity) {
+        CartItem item = new CartItem();
+        item.setCart(this);
+        item.setBook(book);
+        item.setQuantity(quantity);
+        items.add(item);
+        return item;
+    }
+
+    public boolean removeItem(CartItem item) {
+        return items.remove(item);
+    }
+
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();

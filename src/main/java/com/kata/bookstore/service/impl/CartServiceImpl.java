@@ -12,8 +12,10 @@ import com.kata.bookstore.repository.UserRepository;
 import com.kata.bookstore.service.CartService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.transaction.Transactional;
 
@@ -45,7 +47,7 @@ public class CartServiceImpl implements CartService {
                 .getAuthentication().getName();
 
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
     }
 
     private Cart getOrCreateCart(User user) {
@@ -74,7 +76,7 @@ public class CartServiceImpl implements CartService {
         Cart cart = getOrCreateCart(user);
 
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found"));
 
         CartItem existingItem = cart.getItems().stream()
                 .filter(item -> item.getBook().getId().equals(bookId))
@@ -85,13 +87,13 @@ public class CartServiceImpl implements CartService {
 
         if (newQuantity > book.getStock()) {
             log.warn("Rejected cart addition because requested quantity exceeds stock for book {}", bookId);
-            throw new IllegalArgumentException("Insufficient stock available");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient stock available");
         }
 
         if (existingItem != null) {
             existingItem.setQuantity(newQuantity);
         } else {
-            cart.getItems().add(createCartItem(cart, book, quantity));
+            cart.addItem(book, quantity);
         }
 
         cartRepository.save(cart);
@@ -111,7 +113,7 @@ public class CartServiceImpl implements CartService {
 
         if (quantity > item.getBook().getStock()) {
             log.warn("Rejected cart quantity update because requested quantity exceeds stock for book {}", bookId);
-            throw new IllegalArgumentException("Insufficient stock available");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient stock available");
         }
 
         item.setQuantity(quantity);
@@ -124,14 +126,14 @@ public class CartServiceImpl implements CartService {
     public void removeFromCart(Long bookId) {
         User user = getLoggedInUser();
         Cart cart = getOrCreateCart(user);
-        cart.getItems().remove(findCartItem(cart, bookId));
+        cart.removeItem(findCartItem(cart, bookId));
         log.info("Removed book {} from cart", bookId);
     }
 
     private void validateQuantity(Integer quantity) {
         if (quantity == null || quantity <= 0) {
             log.warn("Rejected cart operation because quantity must be greater than zero");
-            throw new IllegalArgumentException("Quantity must be greater than zero");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quantity must be greater than zero");
         }
     }
 
@@ -139,15 +141,9 @@ public class CartServiceImpl implements CartService {
         return cart.getItems().stream()
                 .filter(item -> item.getBook().getId().equals(bookId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Book not found in cart"));
-    }
-
-    private CartItem createCartItem(Cart cart, Book book, Integer quantity) {
-        CartItem item = new CartItem();
-        item.setCart(cart);
-        item.setBook(book);
-        item.setQuantity(quantity);
-        return item;
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Book not found in cart"));
     }
 
     private CartResponse mapToCartResponse(Cart cart) {
