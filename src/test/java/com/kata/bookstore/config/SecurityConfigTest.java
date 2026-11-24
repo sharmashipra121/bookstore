@@ -37,4 +37,10 @@ class SecurityConfigTest {
         mockMvc.perform(get("/cart"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void shouldRequireAuthenticationForH2Console() throws Exception {
+        mockMvc.perform(get("/h2-console/"))
+                .andExpect(status().isUnauthorized());
+    }
 }

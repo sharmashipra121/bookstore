@@ -63,7 +63,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/books", "/books/**").permitAll()
-                        .requestMatchers("/", "/auth/**", "/h2-console/**", "/error").permitAll()
+                        .requestMatchers("/", "/auth/**", "/error").permitAll()
                         .anyRequest().authenticated()
                 )
 

@@ -121,13 +121,15 @@ Example response:
 ]
 ```
 
-The `/auth/**`, `/h2-console/**`, `/error`, and `/` endpoints are publicly accessible. Other endpoints require HTTP Basic authentication.
+The `/auth/**`, `/error`, and `/` endpoints are publicly accessible. Other endpoints, including the H2 console, require HTTP Basic authentication.
 
 ## H2 Database
 
 The application uses a file-based H2 database at `./data/bookstoredb`, relative to the application working directory.
 
-Open the H2 console at:
+Set non-empty `DB_USERNAME` and `DB_PASSWORD` environment variables before starting the application. The H2 console is disabled by default; enable it for local development by setting `H2_CONSOLE_ENABLED=true`. Even when enabled, the console requires HTTP Basic authentication.
+
+Open the console at:
 
 ```text
 http://localhost:8080/h2-console
@@ -138,8 +140,8 @@ Use these connection settings:
 | Setting | Value |
 |---|---|
 | JDBC URL | `jdbc:h2:file:./data/bookstoredb` |
-| Username | _empty_ |
-| Password | _empty_ |
+| Username | `DB_USERNAME` environment value |
+| Password | `DB_PASSWORD` environment value |
 
 Initial sample books are loaded from `src/main/resources/data.sql`.
 
